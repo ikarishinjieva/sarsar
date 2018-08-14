@@ -29,6 +29,14 @@
   name = "github.com/jroimartin/gocui"
   branch = "master"
 
+[[constraint]]
+  name = "github.com/gizak/termui"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/miguelmota/cointop"
+  branch = "master"
+
 [prune]
   go-tests = true
   unused-packages = true
