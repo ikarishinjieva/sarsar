@@ -6,11 +6,12 @@ import (
 	"github.com/miguelmota/cointop/pkg/color"
 	"github.com/miguelmota/cointop/pkg/table"
 	"fmt"
+	"github.com/ikarishinjieva/sarsar/sarsar/ui"
 )
 
 var file *sarFile
 
-func SarSar(inputFile string) error{
+func SarSar(inputFile string) error {
 	var err error
 	file, err = parseSarFile(inputFile)
 	if nil != err {
@@ -42,7 +43,7 @@ func startUi() error {
 
 const (
 	CHART_HEIGHT = 10
-	MENU_WIDTH = 30
+	MENU_WIDTH   = 30
 )
 
 func layout(g *gocui.Gui) error {
@@ -77,63 +78,33 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-
 func makeMenuView(g *gocui.Gui, v *gocui.View) error {
 	v.Highlight = true
 	v.SelBgColor = gocui.ColorGreen
 	v.SelFgColor = gocui.ColorBlack
 
+	treeRoot := &ui.TreeNode{
+		Name:  "root",
+		Nodes: []*ui.TreeNode{},
+		HideName: true,
+	}
+	treeRoot.Expand()
+
 	for sectionId := range file.sections {
-		fmt.Fprintln(v, section2Name[sectionId])
+		name := section2Name[sectionId]
+		treeRoot.AddSubNode(name, nil)
 	}
 
-	if err := g.SetKeybinding(v.Name(), gocui.KeyArrowDown, gocui.ModNone, menuCursorDown); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding(v.Name(), gocui.KeyArrowUp, gocui.ModNone, menuCursorUp); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding(v.Name(), gocui.KeyEnter, gocui.ModNone, menuEnter); err != nil {
+	treeRoot.Nodes[0].AddSubNode("test", nil)
+	//treeRoot.Nodes[0].Expand()
+	treeRoot.SetEnterCallback(menuEnter)
+	if err := treeRoot.Render(g, v); nil != err {
 		return err
 	}
 	return nil
 }
 
-func menuCursorDown(g *gocui.Gui, v *gocui.View) error {
-	if v != nil {
-		cx, cy := v.Cursor()
-		if err := v.SetCursor(cx, cy+1); err != nil {
-			ox, oy := v.Origin()
-			if err := v.SetOrigin(ox, oy+1); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func menuCursorUp(g *gocui.Gui, v *gocui.View) error {
-	if v != nil {
-		ox, oy := v.Origin()
-		cx, cy := v.Cursor()
-		if err := v.SetCursor(cx, cy-1); err != nil && oy > 0 {
-			if err := v.SetOrigin(ox, oy-1); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func menuEnter(g *gocui.Gui, v *gocui.View) error {
-	var l string
-	var err error
-
-	_, cy := v.Cursor()
-	if l, err = v.Line(cy); err != nil {
-		l = ""
-	}
-
+func menuEnter(g *gocui.Gui, v *gocui.View, keys []string) error {
 	maxX, _ := g.Size()
 
 	g.DeleteView("chart")
@@ -146,9 +117,6 @@ func menuEnter(g *gocui.Gui, v *gocui.View) error {
 
 		makeChartView(g, v, maxX-2, 10, []float64{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1000.0, 2.5})
 	}
-
-	l = l
-
 	return nil
 }
 
