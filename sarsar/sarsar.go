@@ -5,26 +5,39 @@ import (
 	"github.com/gizak/termui"
 	"github.com/miguelmota/cointop/pkg/color"
 	"github.com/miguelmota/cointop/pkg/table"
-	"log"
 	"fmt"
 )
 
-func HelloWorld() {
+var file *sarFile
+
+func SarSar(inputFile string) error{
+	var err error
+	file, err = parseSarFile(inputFile)
+	if nil != err {
+		return err
+	}
+
+	return startUi()
+}
+
+func startUi() error {
 	g, err := gocui.NewGui(gocui.OutputNormal)
-	if err != nil {
-		log.Panicln(err)
+	if nil != err {
+		return err
 	}
 	defer g.Close()
 
 	g.SetManagerFunc(layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		log.Panicln(err)
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); nil != err {
+		return err
 	}
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		log.Panicln(err)
+	if err := g.MainLoop(); nil != err && err != gocui.ErrQuit {
+		return err
 	}
+
+	return nil
 }
 
 const (
@@ -69,9 +82,10 @@ func makeMenuView(g *gocui.Gui, v *gocui.View) error {
 	v.Highlight = true
 	v.SelBgColor = gocui.ColorGreen
 	v.SelFgColor = gocui.ColorBlack
-	fmt.Fprintln(v, "Item 1")
-	fmt.Fprintln(v, "Item 2")
-	fmt.Fprintln(v, "Item 3")
+
+	for sectionId := range file.sections {
+		fmt.Fprintln(v, section2Name[sectionId])
+	}
 
 	if err := g.SetKeybinding(v.Name(), gocui.KeyArrowDown, gocui.ModNone, menuCursorDown); err != nil {
 		return err

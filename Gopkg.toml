@@ -37,6 +37,10 @@
   name = "github.com/miguelmota/cointop"
   branch = "master"
 
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  branch = "master"
+
 [prune]
   go-tests = true
   unused-packages = true
