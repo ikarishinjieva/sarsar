@@ -197,9 +197,9 @@ func (s *sarFile) addData(sectionId int, headerSegs []string, line string) error
 }
 
 func (s *sarFile) getDataSeriesByName(sectionName, name string) (labels []string, values []float64, err error) {
-	sectionId, found := name2Section[sectionName]
-	if !found {
-		return nil, nil, fmt.Errorf("found no section named \"%v\"", sectionName)
+	sectionId, err := s.getSectionId(sectionName)
+	if nil != err {
+		return nil, nil, err
 	}
 	section, found := s.sections[sectionId]
 	if !found {
@@ -216,6 +216,14 @@ func (s *sarFile) getDataSeriesByName(sectionName, name string) (labels []string
 		values = append(values, val)
 	}
 	return labels, values, nil
+}
+
+func (s *sarFile) getSectionId(sectionName string) (int, error) {
+	sectionId, found := name2Section[sectionName]
+	if !found {
+		return 0, fmt.Errorf("found no section named \"%v\"", sectionName)
+	}
+	return sectionId, nil
 }
 
 func parseSarFile(path string) (*sarFile, error) {

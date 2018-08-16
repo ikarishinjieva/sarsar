@@ -44,22 +44,13 @@ const (
 )
 
 func layout(g *gocui.Gui) error {
-	maxX, maxY := g.Size()
+	_, maxY := g.Size()
 
 	if v, err := g.SetView("menu", -1, -1, MENU_WIDTH, maxY); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		makeMenuView(g, v)
-	}
-
-	if v, err := g.SetView("table", MENU_WIDTH+1, 11, maxX-1, maxY-1); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		v.Frame = false
-
-		makeTableView(g, v, maxX)
 	}
 
 	g.SetCurrentView("menu")
@@ -106,12 +97,58 @@ func menuEnter(g *gocui.Gui, v *gocui.View, keys []string) error {
 		return fmt.Errorf("unexpected menu key depth: %+v", keys)
 	}
 
+	sectionId, err := file.getSectionId(keys[1])
+	if nil != err {
+		return err
+	}
+
 	labels, values, err := file.getDataSeriesByName(keys[1], keys[0])
 	if nil != err {
 		return err
 	}
 
-	return renderChartView(g, labels, values)
+	if err := renderChartView(g, labels, values); nil != err {
+		return err
+	}
+
+	return renderTableView(g, sectionId)
+}
+
+func renderTableView(g *gocui.Gui, sectionId int) error {
+	maxX, maxY := g.Size()
+
+	section := file.sections[sectionId]
+	tbl := table.New().SetWidth(maxX)
+
+	if len(section.records) == 0 {
+		return nil
+	}
+
+	for col := range section.records[0].data {
+		tbl.AddCol(fmt.Sprintf("%8s", col))
+	}
+
+	for _, rec := range section.records {
+		var vals []interface{}
+		for _, val := range rec.data {
+			vals = append(vals, fmt.Sprintf("%8s", val))
+		}
+		tbl.AddRow(vals...)
+	}
+
+	g.DeleteView("table")
+	if v, err := g.SetView("table", MENU_WIDTH+1, 11, maxX-1, maxY-1); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Frame = false
+
+		g.Update(func(gui *gocui.Gui) error {
+			tbl.Format().Fprint(v)
+			return nil
+		})
+	}
+	return nil
 }
 
 func makeTableView(g *gocui.Gui, view *gocui.View, maxX int) {
