@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"strings"
 	"fmt"
+	"strconv"
 )
 
 type sarRecord struct {
@@ -45,24 +46,45 @@ const (
 )
 
 var section2Name = map[int]string{
-	SECTION_CPU_UTIL: "CPU util",
+	SECTION_CPU_UTIL:                     "CPU util",
 	SECTION_TASK_CREATION_AND_SYS_SWITCH: "Task Creation & Switch",
-	SECTION_SWAPPING: "Swapping statics",
-	SECTION_PAGING: "Paging statics",
-	SECTION_IO: "IO statics",
-	SECTION_MEM_UTIL: "Memory util",
-	SECTION_SWAP_SPACE_UTIL: "Swap space util",
-	SECTION_HUGEPAGES_UTIL: "Hugepages util",
-	SECTION_KERNEL_TABLE_STATUS: "inode/file/kernel-tables",
-	SECTION_QLEN_LOADAVG: "Queue-length & load-avg",
-	SECTION_TTY_DEV: "TTY devices activity",
-	SECTION_BLOCK_DEV: "Block dev activity",
-	SECTION_NETWORK_DEV: "Network statistics",
-	SECTION_NETWORK_EDEV: "Network device errors",
-	SECTION_NETWORK_SOCK: "Network sockets",
-	SECTION_NETWORK_SOFT: "Software-based network processing",
-	SECTION_NETWORK_NFS: "NFS client",
-	SECTION_NETWORK_NFSD: "NFS server",
+	SECTION_SWAPPING:                     "Swapping statics",
+	SECTION_PAGING:                       "Paging statics",
+	SECTION_IO:                           "IO statics",
+	SECTION_MEM_UTIL:                     "Memory util",
+	SECTION_SWAP_SPACE_UTIL:              "Swap space util",
+	SECTION_HUGEPAGES_UTIL:               "Hugepages util",
+	SECTION_KERNEL_TABLE_STATUS:          "inode/file/kernel-tables",
+	SECTION_QLEN_LOADAVG:                 "Queue-length & load-avg",
+	SECTION_TTY_DEV:                      "TTY devices activity",
+	SECTION_BLOCK_DEV:                    "Block dev activity",
+	SECTION_NETWORK_DEV:                  "Network statistics",
+	SECTION_NETWORK_EDEV:                 "Network device errors",
+	SECTION_NETWORK_SOCK:                 "Network sockets",
+	SECTION_NETWORK_SOFT:                 "Software-based network processing",
+	SECTION_NETWORK_NFS:                  "NFS client",
+	SECTION_NETWORK_NFSD:                 "NFS server",
+}
+
+var name2Section = map[string]int{
+	"CPU util":                          SECTION_CPU_UTIL,
+	"Task Creation & Switch":            SECTION_TASK_CREATION_AND_SYS_SWITCH,
+	"Swapping statics":                  SECTION_SWAPPING,
+	"Paging statics":                    SECTION_PAGING,
+	"IO statics":                        SECTION_IO,
+	"Memory util":                       SECTION_MEM_UTIL,
+	"Swap space util":                   SECTION_SWAP_SPACE_UTIL,
+	"Hugepages util":                    SECTION_HUGEPAGES_UTIL,
+	"inode/file/kernel-tables":          SECTION_KERNEL_TABLE_STATUS,
+	"Queue-length & load-avg":           SECTION_QLEN_LOADAVG,
+	"TTY devices activity":              SECTION_TTY_DEV,
+	"Block dev activity":                SECTION_BLOCK_DEV,
+	"Network statistics":                SECTION_NETWORK_DEV,
+	"Network device errors":             SECTION_NETWORK_EDEV,
+	"Network sockets":                   SECTION_NETWORK_SOCK,
+	"Software-based network processing": SECTION_NETWORK_SOFT,
+	"NFS client":                        SECTION_NETWORK_NFS,
+	"NFS server":                        SECTION_NETWORK_NFSD,
 }
 
 func (s *sarFile) parseSegments(line string) (time.Time, []string, error) {
@@ -172,6 +194,28 @@ func (s *sarFile) addData(sectionId int, headerSegs []string, line string) error
 	}
 
 	return nil
+}
+
+func (s *sarFile) getDataSeriesByName(sectionName, name string) (labels []string, values []float64, err error) {
+	sectionId, found := name2Section[sectionName]
+	if !found {
+		return nil, nil, fmt.Errorf("found no section named \"%v\"", sectionName)
+	}
+	section, found := s.sections[sectionId]
+	if !found {
+		return nil, nil, fmt.Errorf("found no section \"%v\" in file", sectionName)
+	}
+	for _, rec := range section.records {
+		val := float64(0)
+		if valStr, found := rec.data[name]; found {
+			if a, err := strconv.ParseFloat(valStr, 64); nil == err {
+				val = a
+			}
+		}
+		labels = append(labels, rec.time.Format("Jan 02 15:04:05"))
+		values = append(values, val)
+	}
+	return labels, values, nil
 }
 
 func parseSarFile(path string) (*sarFile, error) {
