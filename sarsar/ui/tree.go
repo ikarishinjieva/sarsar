@@ -7,6 +7,7 @@ import (
 	"sync"
 	"strings"
 	"regexp"
+	"math"
 )
 
 const PREFIX_LEVEL_INDENT = "  "
@@ -89,6 +90,11 @@ func (n *TreeNode) Switch() {
 	n.isExpand = !n.isExpand
 }
 
+func (n *TreeNode) getLevel(line string) int {
+	lineTrimSpace := strings.TrimLeft(line, PREFIX_LEVEL_INDENT)
+	return (len(line) - len(lineTrimSpace)) / 2
+}
+
 func (n *TreeNode) onEnter(g *gocui.Gui, v *gocui.View) error {
 	var line string
 	var err error
@@ -98,16 +104,29 @@ func (n *TreeNode) onEnter(g *gocui.Gui, v *gocui.View) error {
 		line = ""
 	}
 
-	lineTrimSpace := strings.TrimLeft(line, PREFIX_LEVEL_INDENT)
-	level := (len(line) - len(lineTrimSpace)) / 2
-
 	var segs []string
-	for i := cy; i >= cy-level; i -- {
-		seg, _ := v.Line(i)
-		seg = n.getRawLabel(seg)
-		segs = append(segs, seg)
+	{
+		i := cy
+		lastLevel := math.MaxInt32
+		for i >= 0 {
+			seg, _ := v.Line(i)
+			level := n.getLevel(seg)
+			if level < lastLevel {
+				lastLevel = level
+				segs = append(segs, n.getRawLabel(seg))
+			}
+			if 0 == level {
+				break
+			}
+			i--
+		}
+
+		if n.HideName {
+			segs = append(segs, n.Name)
+		}
 	}
 
+	lineTrimSpace := strings.TrimLeft(line, PREFIX_LEVEL_INDENT)
 	if strings.HasPrefix(lineTrimSpace, PREFIX_COLLAPSE) || strings.HasPrefix(lineTrimSpace, PREFIX_EXPAND) {
 		var curr *TreeNode
 		for i := len(segs) - 1; i >= 0; i-- {
@@ -117,7 +136,7 @@ func (n *TreeNode) onEnter(g *gocui.Gui, v *gocui.View) error {
 				curr = curr.findNode(segs[i])
 			}
 
-			if 0 == i {
+			if nil != curr && 0 == i {
 				curr.Switch()
 			}
 		}
