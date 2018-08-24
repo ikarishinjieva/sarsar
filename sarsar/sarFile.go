@@ -30,6 +30,7 @@ const (
 	SECTION_PAGING                              //= "paging statistics"
 	SECTION_IO                                  //= "I/O and transfer rate statistics"
 	SECTION_MEM_UTIL                            //= "memory utilization statistics"
+	SECTION_MEM                                 //= "memory statistics"
 	SECTION_SWAP_SPACE_UTIL                     //= "swap space utilization statistics"
 	SECTION_HUGEPAGES_UTIL                      //= "hugepages  utilization statistics"
 	SECTION_KERNEL_TABLE_STATUS                 //= "inode, file and other kernel tables status"
@@ -52,6 +53,7 @@ var section2Name = map[int]string{
 	SECTION_PAGING:                       "Paging statics",
 	SECTION_IO:                           "IO statics",
 	SECTION_MEM_UTIL:                     "Memory util",
+	SECTION_MEM:                          "Memory statistics",
 	SECTION_SWAP_SPACE_UTIL:              "Swap space util",
 	SECTION_HUGEPAGES_UTIL:               "Hugepages util",
 	SECTION_KERNEL_TABLE_STATUS:          "inode/file/kernel-tables",
@@ -66,25 +68,12 @@ var section2Name = map[int]string{
 	SECTION_NETWORK_NFSD:                 "NFS server",
 }
 
-var name2Section = map[string]int{
-	"CPU util":                          SECTION_CPU_UTIL,
-	"Task Creation & Switch":            SECTION_TASK_CREATION_AND_SYS_SWITCH,
-	"Swapping statics":                  SECTION_SWAPPING,
-	"Paging statics":                    SECTION_PAGING,
-	"IO statics":                        SECTION_IO,
-	"Memory util":                       SECTION_MEM_UTIL,
-	"Swap space util":                   SECTION_SWAP_SPACE_UTIL,
-	"Hugepages util":                    SECTION_HUGEPAGES_UTIL,
-	"inode/file/kernel-tables":          SECTION_KERNEL_TABLE_STATUS,
-	"Queue-length & load-avg":           SECTION_QLEN_LOADAVG,
-	"TTY devices activity":              SECTION_TTY_DEV,
-	"Block dev activity":                SECTION_BLOCK_DEV,
-	"Network statistics":                SECTION_NETWORK_DEV,
-	"Network device errors":             SECTION_NETWORK_EDEV,
-	"Network sockets":                   SECTION_NETWORK_SOCK,
-	"Software-based network processing": SECTION_NETWORK_SOFT,
-	"NFS client":                        SECTION_NETWORK_NFS,
-	"NFS server":                        SECTION_NETWORK_NFSD,
+var name2Section = map[string]int{}
+
+func init() {
+	for k, v := range section2Name {
+		name2Section[v] = k
+	}
 }
 
 func (s *sarFile) parseSegments(line string) (time.Time, []string, error) {
@@ -124,6 +113,9 @@ func (s *sarFile) addSection(line string) (int, []string, error) {
 	}
 	if len(segs) >= 2 && "kbmemfree" == segs[0] && ("kbavail" == segs[1] || "kbmemused" == segs[1]) {
 		return SECTION_MEM_UTIL, segs, nil
+	}
+	if len(segs) >= 2 && "frmpg/s" == segs[0] && "bufpg/s" == segs[1] {
+		return SECTION_MEM, segs, nil
 	}
 	if len(segs) >= 2 && "kbswpfree" == segs[0] && "kbswpused" == segs[1] {
 		return SECTION_SWAP_SPACE_UTIL, segs, nil

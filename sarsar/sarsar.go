@@ -151,19 +151,6 @@ func renderTableView(g *gocui.Gui, sectionId int) error {
 	return nil
 }
 
-func makeTableView(g *gocui.Gui, view *gocui.View, maxX int) {
-	t := table.New().SetWidth(maxX)
-	t.AddCol("first")
-	t.AddCol("second")
-	t.AddRow("1", "2")
-	t.AddRow("3", "4")
-
-	g.Update(func(gui *gocui.Gui) error {
-		t.Format().Fprint(view)
-		return nil
-	})
-}
-
 func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
